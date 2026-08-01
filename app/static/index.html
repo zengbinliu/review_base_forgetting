@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>艾宾浩斯复习</title>
+  <link rel="stylesheet" href="/static/css/style.css?v=20260717r" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand" onclick="showView('home')">艾宾浩斯复习</div>
+    <nav>
+      <button type="button" class="nav-btn" data-view="home">今日复习</button>
+      <button type="button" class="nav-btn" data-view="wrong">错题本</button>
+      <button type="button" class="nav-btn" data-view="all">全部知识点</button>
+      <button type="button" class="nav-btn" data-view="exam">试卷</button>
+      <button type="button" class="nav-btn" data-view="interview">面试</button>
+      <button type="button" class="nav-btn" data-view="add">新增</button>
+      <button type="button" class="nav-btn" data-view="settings">设置</button>
+    </nav>
+    <span id="dueBadge" class="badge hidden">0</span>
+  </header>
+
+  <main>
+    <!-- 首页：今日待复习 -->
+    <section id="view-home" class="view">
+      <h1>今日待复习</h1>
+      <div id="dueBanner" class="due-banner hidden"></div>
+      <p class="hint">知识点需答完全部题目后才结算档位（到期整轮完成即进下一档，不必全对）；答错会进入错题本并单独按艾宾浩斯复习。</p>
+      <h2 class="section-sub">知识点</h2>
+      <div id="dueList" class="card-list"></div>
+      <p id="dueEmpty" class="empty hidden">今日无到期知识点。</p>
+      <h2 class="section-sub">错题本到期</h2>
+      <div id="dueWrongList" class="card-list"></div>
+      <p id="dueWrongEmpty" class="empty hidden">今日无到期错题。</p>
+    </section>
+
+    <!-- 错题本 -->
+    <section id="view-wrong" class="view hidden">
+      <h1>错题本</h1>
+      <p class="hint">错题有独立艾宾浩斯计划；到期复习即进下一档（答错也推进），到期后会出现在「今日复习」。</p>
+      <div class="date-filter-bar">
+        <label>月份
+          <select id="wrongMonthSelect" class="date-month-select"></select>
+        </label>
+        <label>日期
+          <select id="wrongDaySelect" class="date-day-select"></select>
+        </label>
+        <button type="button" class="btn" id="wrongDateClear">全部日期</button>
+        <input type="hidden" id="wrongDateFilter" value="" />
+      </div>
+      <div id="wrongList" class="card-list"></div>
+      <p id="wrongEmpty" class="empty hidden">错题本为空。</p>
+    </section>
+
+    <!-- 全部 -->
+    <section id="view-all" class="view hidden">
+      <h1>全部知识点</h1>
+      <div class="date-filter-bar">
+        <label>月份
+          <select id="allMonthSelect" class="date-month-select"></select>
+        </label>
+        <label>日期
+          <select id="allDaySelect" class="date-day-select"></select>
+        </label>
+        <button type="button" class="btn" id="allDateClear">全部日期</button>
+        <input type="hidden" id="allDateFilter" value="" />
+      </div>
+      <div id="allList" class="card-list"></div>
+      <p id="allEmpty" class="empty hidden">暂无知识点。</p>
+    </section>
+
+    <!-- 新增 -->
+    <section id="view-add" class="view hidden">
+      <h1>录入知识点</h1>
+      <form id="addForm" class="form">
+        <label>标题 <input name="title" required placeholder="例如：HTTP 缓存头" /></label>
+        <label>正文说明
+          <textarea name="content" rows="6" placeholder="写下今天学到的内容…"></textarea>
+        </label>
+        <label>代码片段（可选）
+          <textarea name="code_snippet" rows="8" class="mono" placeholder="粘贴代码…"></textarea>
+        </label>
+        <label>图片 / 文件
+          <input type="file" id="fileInput" multiple />
+        </label>
+        <label>文件夹（可选）
+          <input type="file" id="folderInput" webkitdirectory directory multiple />
+        </label>
+        <button type="submit" class="btn primary">保存并自动出题</button>
+        <p id="addStatus" class="status"></p>
+      </form>
+    </section>
+
+    <!-- 设置 -->
+    <section id="view-settings" class="view hidden">
+      <h1>设置</h1>
+      <form id="settingsForm" class="form">
+        <label>API Base URL
+          <input name="llm_base_url" placeholder="https://api.deepseek.com/v1" />
+        </label>
+        <label>模型名
+          <input name="llm_model" placeholder="deepseek-v4-flash" />
+        </label>
+        <label>API Key（留空则不修改）
+          <input name="llm_api_key" type="password" placeholder="sk-…" autocomplete="off" />
+        </label>
+        <p id="keyStatus" class="hint"></p>
+        <label class="row">
+          <input type="checkbox" name="desktop_notify" /> 启用桌面 Toast 提醒（需 run.py 常驻）
+        </label>
+        <label class="row">
+          <input type="checkbox" name="browser_notify" /> 启用浏览器通知
+        </label>
+        <label class="row">
+          <input type="checkbox" name="web_search_enabled" /> 出题时联网搜索（DuckDuckGo，补充公开网页摘要）
+        </label>
+        <label class="row">
+          <input type="checkbox" name="web_search_for_grade" /> 简答/场景题判分时联网搜索（会更慢）
+        </label>
+        <p class="hint">联网内容仅作补充；与本地知识点冲突时，以本地为准。</p>
+        <div class="row-inline">
+          <label>每日提醒时刻
+            <input name="notify_hour" type="number" min="0" max="23" style="width:4rem" /> 时
+          </label>
+          <label>
+            <input name="notify_minute" type="number" min="0" max="59" style="width:4rem" /> 分
+          </label>
+        </div>
+        <p class="hint">桌面提醒需保持 <code>python run.py</code> 常驻；到点且有待复习才会弹。若系统通知被关闭，测试时会改用置顶小窗。浏览器通知需先授权，且页面保持打开。</p>
+        <div class="actions">
+          <button type="button" class="btn" id="btnEnableNotify">请求浏览器通知权限</button>
+          <button type="button" class="btn" id="btnTestDesktopNotify">测试桌面提醒</button>
+        </div>
+        <button type="submit" class="btn primary">保存设置</button>
+        <p id="settingsStatus" class="status"></p>
+      </form>
+      <div class="hint box">
+        <p>换电脑迁移：复制整个项目目录（至少包含 <code>data/</code> 与 <code>.env</code>），在新电脑安装依赖后执行 <code>python run.py</code>。</p>
+      </div>
+    </section>
+
+    <!-- 试卷 -->
+    <section id="view-exam" class="view hidden">
+      <h1>试卷</h1>
+      <p class="hint">选择已学知识点，由 LLM 生成综合试卷；可开启「知识点拓展」覆盖相邻概念。</p>
+      <div class="practice-layout">
+        <form id="examForm" class="form practice-form">
+          <h2 class="section-sub">生成试卷</h2>
+          <label>试卷标题（可选）
+            <input name="title" placeholder="留空则自动命名" />
+          </label>
+          <label>题量
+            <input name="question_count" type="number" min="4" max="20" value="8" />
+          </label>
+          <label class="row">
+            <input type="checkbox" name="expand" /> 允许基于知识点拓展出题
+          </label>
+          <div class="item-pick-box">
+            <div class="item-pick-head">
+              <strong>选择知识点</strong>
+              <button type="button" class="btn" id="btnExamSelectAll">全选</button>
+            </div>
+            <div id="examItemPicker" class="item-picker"></div>
+          </div>
+          <button type="submit" class="btn primary" id="btnExamGenerate">生成试卷</button>
+          <p id="examStatus" class="status"></p>
+        </form>
+        <div>
+          <h2 class="section-sub">历史试卷</h2>
+          <div class="date-filter-bar">
+            <label>月份
+              <select id="examMonthSelect" class="date-month-select"></select>
+            </label>
+            <label>日期
+              <select id="examDaySelect" class="date-day-select"></select>
+            </label>
+            <button type="button" class="btn" id="examDateClear">全部日期</button>
+            <input type="hidden" id="examDateFilter" value="" />
+          </div>
+          <div id="examList" class="card-list"></div>
+          <p id="examEmpty" class="empty hidden">暂无试卷。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 面试 -->
+    <section id="view-interview" class="view hidden">
+      <h1>面试</h1>
+      <p class="hint">选择已学知识点，由 LLM 生成面试题与参考答法、追问。</p>
+      <div class="practice-layout">
+        <form id="interviewForm" class="form practice-form">
+          <h2 class="section-sub">生成面试题</h2>
+          <label>套题标题（可选）
+            <input name="title" placeholder="留空则自动命名" />
+          </label>
+          <label>题量
+            <input name="question_count" type="number" min="3" max="15" value="6" />
+          </label>
+          <label class="row">
+            <input type="checkbox" name="expand" /> 允许结合真实面试场景拓展
+          </label>
+          <div class="item-pick-box">
+            <div class="item-pick-head">
+              <strong>选择知识点</strong>
+              <button type="button" class="btn" id="btnInterviewSelectAll">全选</button>
+            </div>
+            <div id="interviewItemPicker" class="item-picker"></div>
+          </div>
+          <button type="submit" class="btn primary" id="btnInterviewGenerate">生成面试题</button>
+          <p id="interviewStatus" class="status"></p>
+        </form>
+        <div>
+          <h2 class="section-sub">历史面试套题</h2>
+          <div class="date-filter-bar">
+            <label>月份
+              <select id="interviewMonthSelect" class="date-month-select"></select>
+            </label>
+            <label>日期
+              <select id="interviewDaySelect" class="date-day-select"></select>
+            </label>
+            <button type="button" class="btn" id="interviewDateClear">全部日期</button>
+            <input type="hidden" id="interviewDateFilter" value="" />
+          </div>
+          <div id="interviewList" class="card-list"></div>
+          <p id="interviewEmpty" class="empty hidden">暂无面试套题。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 试卷/面试详情 -->
+    <section id="view-practice-detail" class="view hidden">
+      <h1 id="practiceDetailTitle">详情</h1>
+      <p id="practiceDetailMeta" class="hint"></p>
+      <div class="actions" style="margin-bottom:0.75rem">
+        <button type="button" class="btn primary" id="btnStartPracticeQuiz">开始答题</button>
+        <button type="button" class="btn" id="btnToggleAnswers">显示/隐藏参考答案</button>
+        <button type="button" class="btn" id="btnResetPracticeAnswers">清空作答</button>
+        <button type="button" class="btn" id="btnPracticeBack">返回</button>
+      </div>
+      <div id="practiceDetailBox" class="material"></div>
+    </section>
+
+    <!-- 复习答题 -->
+    <section id="view-quiz" class="view hidden">
+      <h1>复习答题</h1>
+      <p id="quizTitle" class="subtitle"></p>
+      <div id="quizBox"></div>
+      <p id="quizStatus" class="status"></p>
+    </section>
+
+    <!-- 答错后学习材料 -->
+    <section id="view-study" class="view hidden">
+      <h1>复习知识点</h1>
+      <p class="hint">刚才回答不够准确，请先学习下面内容，再继续今日复习。</p>
+      <div id="studyBox" class="material"></div>
+      <button type="button" class="btn primary" id="btnStudyDone">已学习，继续今日复习</button>
+    </section>
+
+    <!-- 详情 -->
+    <section id="view-detail" class="view hidden">
+      <h1 id="detailTitle">详情</h1>
+      <div id="detailBox" class="material"></div>
+      <button type="button" class="btn" onclick="showView('all')">返回</button>
+    </section>
+  </main>
+
+  <script src="/static/js/marked.min.js"></script>
+  <script src="/static/js/app.js?v=20260719a"></script>
+</body>
+</html>

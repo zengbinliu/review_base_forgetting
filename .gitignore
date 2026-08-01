@@ -1,0 +1,23 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Personal data and learning resources
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Python environment and cache
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# IDE and system files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.log
